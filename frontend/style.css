@@ -1,0 +1,231 @@
+:root {
+  --bg: #f4f7fb;
+  --card: #ffffff;
+  --line: #d8e1ec;
+  --text: #1f2a3a;
+  --primary: #1751a6;
+  --danger: #ba2c2c;
+  --ok: #1e7f43;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Tahoma, sans-serif;
+  background: linear-gradient(135deg, #f4f7fb, #e9f0fb);
+  color: var(--text);
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 24px;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+}
+
+.container {
+  max-width: 960px;
+  margin: 28px auto;
+  padding: 0 16px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 8px 30px rgba(31, 42, 58, 0.08);
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.tabs button.active {
+  background: var(--primary);
+  color: white;
+}
+
+.form {
+  display: grid;
+  gap: 10px;
+  max-width: 360px;
+}
+
+input,
+button {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+button {
+  cursor: pointer;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+}
+
+button.secondary {
+  background: #52627a;
+}
+
+button.danger {
+  background: var(--danger);
+}
+
+button.small {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.task-title {
+  font-weight: 600;
+}
+
+.hour-label {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.task-list {
+  display: grid;
+  gap: 6px;
+}
+
+.task-item {
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8fbff;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.task-item:hover {
+  background: #e9f0fb;
+}
+
+.task-time {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.action-stack {
+  display: grid;
+  gap: 6px;
+}
+
+.task-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 1000;
+}
+
+.modal-card {
+  width: min(460px, 100%);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.2);
+}
+
+.modal-slot {
+  margin: 6px 0 10px;
+  font-weight: 600;
+}
+
+#modalTitleInput {
+  width: 100%;
+}
+
+.modal-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.time-grid {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.time-grid label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+
+.time-grid input {
+  width: 100%;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  border: 1px solid var(--line);
+  padding: 10px;
+  text-align: left;
+}
+
+tbody tr:nth-child(even) {
+  background: #f8fbff;
+}
+
+.actions {
+  display: flex;
+  gap: 6px;
+}
+
+.message {
+  margin-top: 12px;
+  min-height: 20px;
+  font-weight: 600;
+}
+
+.message.error {
+  color: var(--danger);
+}
+
+.message.success {
+  color: var(--ok);
+}
+
+.hidden {
+  display: none;
+}

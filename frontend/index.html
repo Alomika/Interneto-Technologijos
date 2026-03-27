@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Timetable App</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>Timetable</h1>
+    <button id="logoutBtn" class="hidden">Log out</button>
+  </header>
+
+  <main class="container">
+    <section id="authSection" class="card">
+      <div class="tabs">
+        <button id="showLogin" class="active">Login</button>
+        <button id="showRegister">Register</button>
+      </div>
+
+      <form id="loginForm" class="form">
+        <h2>Login</h2>
+        <input type="email" id="loginEmail" placeholder="Email" required />
+        <input type="password" id="loginPassword" placeholder="Password" required />
+        <button type="submit">Login</button>
+      </form>
+
+      <form id="registerForm" class="form hidden">
+        <h2>Register</h2>
+        <input type="text" id="registerName" placeholder="Name" required />
+        <input type="email" id="registerEmail" placeholder="Email" required />
+        <input type="password" id="registerPassword" placeholder="Password" required />
+        <button type="submit">Create account</button>
+      </form>
+
+      <p id="authMessage" class="message"></p>
+    </section>
+
+    <section id="appSection" class="card hidden">
+      <div class="controls">
+        <label for="scheduleDate">Selected date:</label>
+        <input type="date" id="scheduleDate" />
+        <button id="sendDayBtn">Send selected day to Gmail</button>
+      </div>
+
+      <table id="scheduleTable">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Tasks</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <p id="appMessage" class="message"></p>
+    </section>
+  </main>
+
+  <div id="itemModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalHeading">
+    <div class="modal-card">
+      <h3 id="modalHeading">Edit timetable item</h3>
+      <p id="modalSlotLabel" class="modal-slot"></p>
+      <input type="text" id="modalTitleInput" placeholder="Item name" maxlength="120" />
+      <div class="time-grid">
+        <div>
+          <label for="modalStartTime">Start time</label>
+          <input type="time" id="modalStartTime" />
+        </div>
+        <div>
+          <label for="modalEndTime">End time</label>
+          <input type="time" id="modalEndTime" />
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button id="saveItemBtn" class="small">Save</button>
+        <button id="deleteItemBtn" class="small danger hidden">Delete</button>
+        <button id="cancelEditBtn" class="small secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js?v=20260325-1"></script>
+</body>
+</html>
