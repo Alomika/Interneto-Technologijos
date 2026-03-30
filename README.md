@@ -2,7 +2,17 @@
 
 Project structure:
 - frontend: vanilla HTML/CSS/JS app for register, login, timetable CRUD, logout, and send-day email action
-- backend: Node.js + Express + SQLite API
+- backend: Node.js + Express + SQLite API (modular structure)
+
+Backend code layout:
+- `server.js` (entrypoint)
+- `src/app.js` (Express app + middleware)
+- `src/routes/apiRoutes.js` (API route definitions)
+- `src/controllers/authController.js` (register/login logic)
+- `src/controllers/scheduleController.js` (schedule and email endpoint logic)
+- `src/middleware/auth.js` (JWT auth middleware)
+- `src/db/*` (database connection, init/migrations, query helpers)
+- `src/utils/schedule.js` (schedule input normalization/validation)
 
 ## 1. Backend setup
 
