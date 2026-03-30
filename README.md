@@ -39,7 +39,37 @@ If you want a local static server quickly:
 - GET /api/schedule?date=YYYY-MM-DD
 - POST /api/schedule
 - PUT /api/schedule/:id
+- PATCH /api/schedule/:id
 - DELETE /api/schedule/:id
 - POST /api/schedule/send-day
 
 All schedule endpoints require Bearer token from login response.
+
+## 4. Parameter examples (for requirement proof)
+
+Use these examples to show query, path, and header parameters clearly.
+
+### Query parameter example
+
+GET http://localhost:4000/api/schedule?date=2026-03-30
+
+- query parameter: `date=2026-03-30`
+
+### Path parameter examples
+
+PUT http://localhost:4000/api/schedule/7
+PATCH http://localhost:4000/api/schedule/7
+DELETE http://localhost:4000/api/schedule/7
+
+- path parameter: `:id` (example value: `7`)
+
+### Header parameter example
+
+For protected endpoints, include header:
+
+Authorization: Bearer <token>
+
+Example request:
+
+curl -X GET "http://localhost:4000/api/schedule?date=2026-03-30" \
+   -H "Authorization: Bearer YOUR_JWT_TOKEN"

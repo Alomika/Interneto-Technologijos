@@ -127,6 +127,21 @@ button.small {
   opacity: 0.8;
 }
 
+.calendar-link {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #1a73e8;
+  color: #fff;
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.calendar-link:hover {
+  background: #1666c7;
+}
+
 .action-stack {
   display: grid;
   gap: 6px;
@@ -228,4 +243,11 @@ tbody tr:nth-child(even) {
 
 .hidden {
   display: none;
+}
+
+@media (max-width: 425px) {
+  #scheduleTable th:nth-child(3),
+  #scheduleTable td:nth-child(3) {
+    display: none;
+  }
 }

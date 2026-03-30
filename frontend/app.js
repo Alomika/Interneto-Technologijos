@@ -16,8 +16,10 @@ const appMessage = document.getElementById("appMessage");
 
 const scheduleDate = document.getElementById("scheduleDate");
 const scheduleBody = document.querySelector("#scheduleTable tbody");
+const addScheduleBtn = document.getElementById("addScheduleBtn");
 const sendDayBtn = document.getElementById("sendDayBtn");
 const itemModal = document.getElementById("itemModal");
+const modalHeading = document.getElementById("modalHeading");
 const modalSlotLabel = document.getElementById("modalSlotLabel");
 const modalTitleInput = document.getElementById("modalTitleInput");
 const modalStartTime = document.getElementById("modalStartTime");
@@ -53,6 +55,26 @@ function authHeaders() {
   };
 }
 
+function isValidDateParam(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value || "");
+}
+
+function getDateFromQuery() {
+  const params = new URLSearchParams(window.location.search);
+  const date = params.get("date");
+  return isValidDateParam(date) ? date : "";
+}
+
+function updateDateQueryParam(date) {
+  const url = new URL(window.location.href);
+  if (isValidDateParam(date)) {
+    url.searchParams.set("date", date);
+  } else {
+    url.searchParams.delete("date");
+  }
+  window.history.replaceState(null, "", url.toString());
+}
+
 function timeToMinutes(time) {
   if (!/^\d{2}:\d{2}$/.test(time || "")) return NaN;
   const [hours, minutes] = time.split(":").map(Number);
@@ -83,6 +105,27 @@ function defaultEndTime(startTime) {
   return `${hours}:${minutes}`;
 }
 
+function getDefaultTaskTitle() {
+  return "Unnamed task";
+}
+
+function toGoogleCalendarDateTime(date, time) {
+  return `${date.replace(/-/g, "")}T${time.replace(":", "")}00`;
+}
+
+function buildGoogleCalendarLink(item) {
+  const start = toGoogleCalendarDateTime(item.date, item.startTime);
+  const end = toGoogleCalendarDateTime(item.date, item.endTime);
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: item.title,
+    dates: `${start}/${end}`,
+    details: "Created from Timetable app"
+  });
+
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
 function renderTable() {
   scheduleBody.innerHTML = "";
   const sortedItems = [...dayItems].sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
@@ -105,17 +148,14 @@ function renderTable() {
     const tasksHtml = tasks.length
       ? `<div class="task-list">${tasks
         .map(
-          (item) => `<div class="task-item" data-task-id="${item.id}"><div class="task-title">${item.title}</div><div class="task-time">${item.startTime} - ${item.endTime}</div></div>`
+          (item) => `<div class="task-item" data-task-id="${item.id}"><div class="task-title">${item.title}</div><div class="task-time">${item.startTime} - ${item.endTime}</div><a class="calendar-link" href="${buildGoogleCalendarLink(item)}" target="_blank" rel="noopener noreferrer">Google Calendar</a></div>`
         )
         .join("")}</div>`
       : "<span>No tasks</span>";
 
-    const actionsHtml = `
-      <div class="action-stack">
-        <button class="small secondary" data-action="add" data-hour="${hour}">Add to schedule</button>
-        ${tasks.length > 0 ? `<button class="small danger" data-action="delete-all" data-hour="${hour}">Delete all</button>` : ""}
-      </div>
-    `;
+    const actionsHtml = tasks.length > 0
+      ? `<div class="action-stack"><button class="small danger" data-action="delete-all" data-hour="${hour}">Delete all</button></div>`
+      : "";
 
     row.innerHTML = `
       <td class="hour-label">${formatHour(hour)}</td>
@@ -182,10 +222,15 @@ async function deleteItem(id) {
 function openEditor({ date, item = null, canDelete = false }) {
   const startTime = item ? item.startTime : "09:00";
   const endTime = item ? item.endTime : defaultEndTime(startTime);
+  const isNewItem = !item || !item.id;
+  const initialTitle = item && item.title ? item.title : "";
+  const titleValue = isNewItem ? getDefaultTaskTitle() : initialTitle;
 
   editState = { date, itemId: item ? item.id : null };
+  modalHeading.textContent = isNewItem ? "Create New Item" : "Edit timetable item";
   modalSlotLabel.textContent = date;
-  modalTitleInput.value = item ? item.title : "";
+  modalTitleInput.value = titleValue;
+  modalTitleInput.placeholder = "Item name";
   modalStartTime.value = startTime;
   modalEndTime.value = endTime;
   
@@ -198,6 +243,9 @@ function openEditor({ date, item = null, canDelete = false }) {
   
   itemModal.classList.remove("hidden");
   modalTitleInput.focus();
+  if (isNewItem) {
+    modalTitleInput.select();
+  }
 }
 
 function closeEditor() {
@@ -210,6 +258,12 @@ function closeEditor() {
 }
 
 scheduleBody.addEventListener("click", async (event) => {
+  const calendarLink = event.target.closest(".calendar-link");
+  if (calendarLink) {
+    event.stopPropagation();
+    return;
+  }
+
   // Handle task item clicks (edit mode)
   const taskItem = event.target.closest(".task-item");
   if (taskItem) {
@@ -235,13 +289,6 @@ scheduleBody.addEventListener("click", async (event) => {
   }
 
   try {
-    if (action === "add") {
-      const startTime = formatHourInput(hour);
-      const endTime = defaultEndTime(startTime);
-      openEditor({ date, item: { title: "", startTime, endTime }, canDelete: false });
-      return;
-    }
-
     if (action === "delete-all") {
       const hour = Number(button.dataset.hour);
       const tasksInHour = dayItems.filter(
@@ -262,13 +309,12 @@ scheduleBody.addEventListener("click", async (event) => {
 saveItemBtn.addEventListener("click", async () => {
   if (!editState) return;
 
-  const trimmed = modalTitleInput.value.trim();
+  let trimmed = modalTitleInput.value.trim();
   const startTime = modalStartTime.value;
   const endTime = modalEndTime.value;
 
   if (!trimmed) {
-    setMessage(appMessage, "Item title cannot be empty", "error");
-    return;
+    trimmed = getDefaultTaskTitle();
   }
 
   if (!startTime || !endTime) {
@@ -355,6 +401,18 @@ sendDayBtn.addEventListener("click", async () => {
   }
 });
 
+addScheduleBtn.addEventListener("click", () => {
+  const date = scheduleDate.value;
+  if (!date) {
+    setMessage(appMessage, "Select a date first", "error");
+    return;
+  }
+
+  const startTime = "09:00";
+  const endTime = defaultEndTime(startTime);
+  openEditor({ date, item: { title: "", startTime, endTime }, canDelete: false });
+});
+
 showLogin.addEventListener("click", () => toggleAuthForm("login"));
 showRegister.addEventListener("click", () => toggleAuthForm("register"));
 
@@ -428,11 +486,19 @@ logoutBtn.addEventListener("click", () => {
 });
 
 function setDefaultDate() {
+  const queryDate = getDateFromQuery();
+  if (queryDate) {
+    scheduleDate.value = queryDate;
+    return;
+  }
+
   const today = new Date();
   const yyyy = today.getFullYear();
   const mm = String(today.getMonth() + 1).padStart(2, "0");
   const dd = String(today.getDate()).padStart(2, "0");
-  scheduleDate.value = `${yyyy}-${mm}-${dd}`;
+  const todayDate = `${yyyy}-${mm}-${dd}`;
+  scheduleDate.value = todayDate;
+  updateDateQueryParam(todayDate);
 }
 
 async function enterApp() {
@@ -449,7 +515,10 @@ async function enterApp() {
   await fetchSchedule();
 }
 
-scheduleDate.addEventListener("change", fetchSchedule);
+scheduleDate.addEventListener("change", () => {
+  updateDateQueryParam(scheduleDate.value);
+  fetchSchedule();
+});
 
 if (token && currentUser) {
   setDefaultDate();

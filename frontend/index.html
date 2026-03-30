@@ -41,8 +41,11 @@
       <div class="controls">
         <label for="scheduleDate">Selected date:</label>
         <input type="date" id="scheduleDate" />
-        <button id="sendDayBtn">Send selected day to Gmail</button>
+        <button id="addScheduleBtn" class="secondary">Add to schedule</button>
+        <button id="sendDayBtn">Send to Gmail</button>
       </div>
+
+      <p id="appMessage" class="message"></p>
 
       <table id="scheduleTable">
         <thead>
@@ -54,8 +57,6 @@
         </thead>
         <tbody></tbody>
       </table>
-
-      <p id="appMessage" class="message"></p>
     </section>
   </main>
 
@@ -82,6 +83,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=20260325-1"></script>
+  <script src="app.js?v=20260327-4"></script>
 </body>
 </html>
