@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:4000/api";
+const API_BASE = "https://localhost:4000/api";
 let token = localStorage.getItem("token") || "";
 let currentUser = JSON.parse(localStorage.getItem("user") || "null");
 let dayItems = [];
@@ -167,21 +167,19 @@ function renderTable() {
   }
 }
 
+
+
 async function fetchSchedule() {
   const date = scheduleDate.value;
   if (!date || !token) return;
-
   try {
     const response = await fetch(`${API_BASE}/schedule?date=${encodeURIComponent(date)}`, {
       headers: authHeaders()
     });
-
     const data = await response.json();
-
     if (!response.ok) {
       throw new Error(data.message || "Could not load schedule");
     }
-
     dayItems = data;
     renderTable();
     setMessage(appMessage, `Loaded ${dayItems.length} task(s) for selected date`, "success");
@@ -189,6 +187,8 @@ async function fetchSchedule() {
     setMessage(appMessage, error.message, "error");
   }
 }
+
+
 
 async function createItem(date, startTime, endTime, title) {
   const response = await fetch(`${API_BASE}/schedule`, {
@@ -200,6 +200,8 @@ async function createItem(date, startTime, endTime, title) {
   if (!response.ok) throw new Error(data.message || "Create failed");
 }
 
+
+
 async function updateItem(id, date, startTime, endTime, title) {
   const response = await fetch(`${API_BASE}/schedule/${id}`, {
     method: "PUT",
@@ -209,6 +211,8 @@ async function updateItem(id, date, startTime, endTime, title) {
   const data = await response.json();
   if (!response.ok) throw new Error(data.message || "Update failed");
 }
+
+
 
 async function deleteItem(id) {
   const response = await fetch(`${API_BASE}/schedule/${id}`, {
@@ -376,25 +380,24 @@ itemModal.addEventListener("click", (event) => {
   }
 });
 
+
+
 sendDayBtn.addEventListener("click", async () => {
   const date = scheduleDate.value;
   if (!date) {
     setMessage(appMessage, "Choose date before sending", "error");
     return;
   }
-
   try {
     const response = await fetch(`${API_BASE}/schedule/send-day`, {
       method: "POST",
       headers: authHeaders(),
       body: JSON.stringify({ date })
     });
-
     const data = await response.json();
     if (!response.ok) {
       throw new Error(data.message || "Email send failed");
     }
-
     setMessage(appMessage, data.message, "success");
   } catch (error) {
     setMessage(appMessage, error.message, "error");
@@ -416,25 +419,23 @@ addScheduleBtn.addEventListener("click", () => {
 showLogin.addEventListener("click", () => toggleAuthForm("login"));
 showRegister.addEventListener("click", () => toggleAuthForm("register"));
 
+
+
 registerForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-
   const name = document.getElementById("registerName").value.trim();
   const email = document.getElementById("registerEmail").value.trim();
   const password = document.getElementById("registerPassword").value;
-
   try {
     const response = await fetch(`${API_BASE}/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, email, password })
     });
-
     const data = await response.json();
     if (!response.ok) {
       throw new Error(data.message || "Registration failed");
     }
-
     setMessage(authMessage, "Registration successful. Please login.", "success");
     registerForm.reset();
     toggleAuthForm("login");
@@ -443,29 +444,26 @@ registerForm.addEventListener("submit", async (event) => {
   }
 });
 
+
+
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-
   const email = document.getElementById("loginEmail").value.trim();
   const password = document.getElementById("loginPassword").value;
-
   try {
     const response = await fetch(`${API_BASE}/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password })
     });
-
     const data = await response.json();
     if (!response.ok) {
       throw new Error(data.message || "Login failed");
     }
-
     token = data.token;
     currentUser = data.user;
     localStorage.setItem("token", token);
     localStorage.setItem("user", JSON.stringify(currentUser));
-
     enterApp();
   } catch (error) {
     setMessage(authMessage, error.message, "error");

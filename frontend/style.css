@@ -245,7 +245,7 @@ tbody tr:nth-child(even) {
   display: none;
 }
 
-@media (max-width: 425px) {
+@media (max-width: 426px) {
   #scheduleTable th:nth-child(3),
   #scheduleTable td:nth-child(3) {
     display: none;

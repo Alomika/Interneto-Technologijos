@@ -11,4 +11,9 @@ app.use(cookieParser());
 
 app.use("/api", apiRoutes);
 
+// Respond to GET /
+app.get("/", (req, res) => {
+  res.send("Backend is running.");
+});
+
 module.exports = app;
