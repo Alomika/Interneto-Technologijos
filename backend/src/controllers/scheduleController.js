@@ -9,6 +9,19 @@ async function getSchedule(req, res) {
       return res.status(400).json({ message: "date query parameter is required" });
     }
 
+    // Check for cached schedule in cookies
+    const cacheKey = `schedule_${req.user.id}_${date}`;
+    let cached = null;
+    try {
+      if (req.cookies && req.cookies[cacheKey]) {
+        cached = JSON.parse(req.cookies[cacheKey]);
+        // Optionally, check for expiration in the cookie value
+        if (cached && cached.expires > Date.now()) {
+          return res.json(cached.value);
+        }
+      }
+    } catch (e) { /* ignore parse errors */ }
+
     const rows = await dbAll(
       `SELECT id, date,
         COALESCE(start_time, time) AS startTime,
@@ -19,6 +32,13 @@ async function getSchedule(req, res) {
       ORDER BY COALESCE(start_time, time)`,
       [req.user.id, date]
     );
+
+    // Set cookie for 60 seconds
+    res.cookie(cacheKey, JSON.stringify({ value: rows, expires: Date.now() + 60000 }), {
+      maxAge: 60000,
+      httpOnly: false, // Set to true if you want to restrict JS access
+      sameSite: "lax"
+    });
 
     return res.json(rows);
   } catch (error) {
