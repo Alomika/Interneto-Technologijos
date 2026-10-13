@@ -1,4 +1,4 @@
-const API_BASE = "https://localhost:4000/api";
+const API_BASE = `${window.location.protocol}//localhost:4000/api`;
 let token = localStorage.getItem("token") || "";
 let currentUser = JSON.parse(localStorage.getItem("user") || "null");
 let dayItems = [];

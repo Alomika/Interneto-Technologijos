@@ -1,6 +1,7 @@
 require("dotenv").config();
 
 const fs = require("fs");
+const http = require("http");
 const https = require("https");
 const path = require("path");
 const app = require("./src/app");
@@ -9,15 +10,18 @@ const { initDatabase } = require("./src/db/init");
 
 initDatabase();
 
-const pfxPath = path.join(__dirname, "src", "utils", "localhost.pfx");
+if (process.env.USE_HTTP === "true") {
+  http.createServer(app).listen(PORT, () => {
+    console.log(`Backend API running on http://localhost:${PORT}`);
+  });
+} else {
+  const pfxPath = path.join(__dirname, "src", "utils", "localhost.pfx");
+  const httpsOptions = {
+    pfx: fs.readFileSync(pfxPath),
+    passphrase: process.env.PFX_PASSPHRASE || ""
+  };
 
-console.log("[DEBUG] Using PFX path:", pfxPath);
-console.log("[DEBUG] Using passphrase:", process.env.PFX_PASSPHRASE);
-const httpsOptions = {
-  pfx: fs.readFileSync(pfxPath),
-  passphrase: process.env.PFX_PASSPHRASE || ""
-};
-
-https.createServer(httpsOptions, app).listen(PORT, () => {
-  console.log(`Backend API running on https://localhost:${PORT}`);
-});
+  https.createServer(httpsOptions, app).listen(PORT, () => {
+    console.log(`Backend API running on https://localhost:${PORT}`);
+  });
+}
