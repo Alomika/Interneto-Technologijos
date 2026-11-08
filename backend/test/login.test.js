@@ -3,7 +3,7 @@ const { after, before, test } = require("node:test");
 const bcrypt = require("bcryptjs");
 const { login } = require("../src/controllers/authController");
 const { db } = require("../src/db/database");
-const { dbRun } = require("../src/db/helpers");
+const dbHelpers = require("../src/db/helpers");
 
 const email = `login-test-${Date.now()}@example.com`;
 const user = {
@@ -30,7 +30,7 @@ function responseMock() {
 
 before(async () => {
   const passwordHash = await bcrypt.hash(user.password, 10);
-  const result = await dbRun(
+  const result = await dbHelpers.dbRun(
     "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
     [user.name, user.email, passwordHash]
   );
@@ -38,11 +38,22 @@ before(async () => {
 });
 
 after(async () => {
-  await dbRun("DELETE FROM users WHERE id = ?", [user.id]);
+  await dbHelpers.dbRun("DELETE FROM users WHERE id = ?", [user.id]);
   db.close();
 });
 
-test("login rejects requests without email or password", async () => {
+test("login rejects a request without an email", async () => {
+  const response = responseMock();
+
+  await login({ body: { password: user.password } }, response);
+
+  assert.equal(response.statusCode, 400);
+  assert.deepEqual(response.body, {
+    message: "email and password are required"
+  });
+});
+
+test("login rejects a request without a password", async () => {
   const response = responseMock();
 
   await login({ body: { email: user.email } }, response);
@@ -83,4 +94,38 @@ test("login returns a token and user details for valid credentials", async () =>
     name: user.name,
     email: user.email
   });
+});
+
+test("login returns a server error when the database query fails", async () => {
+  const response = responseMock();
+  const originalDbGet = dbHelpers.dbGet;
+  dbHelpers.dbGet = async () => {
+    throw new Error("database unavailable");
+  };
+
+  try {
+    await login({ body: { email: user.email, password: user.password } }, response);
+  } finally {
+    dbHelpers.dbGet = originalDbGet;
+  }
+
+  assert.equal(response.statusCode, 500);
+  assert.deepEqual(response.body, { message: "Login failed" });
+});
+
+test("login returns a server error when password comparison fails", async () => {
+  const response = responseMock();
+  const originalCompare = bcrypt.compare;
+  bcrypt.compare = async () => {
+    throw new Error("password service unavailable");
+  };
+
+  try {
+    await login({ body: { email: user.email, password: user.password } }, response);
+  } finally {
+    bcrypt.compare = originalCompare;
+  }
+
+  assert.equal(response.statusCode, 500);
+  assert.deepEqual(response.body, { message: "Login failed" });
 });
