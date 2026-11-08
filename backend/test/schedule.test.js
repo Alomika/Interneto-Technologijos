@@ -1,6 +1,7 @@
 const assert = require("node:assert/strict");
 const Module = require("node:module");
 const { test } = require("node:test");
+const { setCache, getCache } = require("../src/utils/simpleCache");
 
 let dbAllImpl = async () => [];
 const helpersPath = require.resolve("../src/db/helpers");
@@ -25,7 +26,6 @@ try {
 } finally {
   Module._load = originalLoad;
 }
-const { getCache, setCache } = require("../src/utils/simpleCache");
 
 function responseMock() {
   return {
@@ -47,7 +47,7 @@ function responseMock() {
   };
 }
 
-function requestMock({ date = "2026-11-08", cookies = {}, missingDate = false } = {}) {
+function requestMock({ date = "2026-11-12", cookies = {}, missingDate = false } = {}) {
   return {
     query: missingDate ? {} : { date },
     cookies,
@@ -72,69 +72,51 @@ test("getSchedule returns 400 when date is missing", async () => {
   assert.equal(databaseCalled, false);
 });
 
-test("getSchedule returns a valid cached schedule from the cookie", async () => {
+test("getSchedule returns a valid cached schedule from simpleCache when cache hit occurs", async () => {
   let databaseCalled = false;
   dbAllImpl = async () => {
     databaseCalled = true;
     return [];
   };
   const schedule = [{ id: 1, title: "Cached item" }];
-  const cacheKey = "schedule_42_2026-11-08";
-  const request = requestMock({
-    cookies: {
-      [cacheKey]: JSON.stringify({
-        value: schedule,
-        expires: Date.now() + 60_000
-      })
-    }
-  });
+  const cacheKey = "schedule_42_2026-11-12";
+  setCache(cacheKey, schedule, 60);
   const response = responseMock();
 
-  await getSchedule(request, response);
+  await getSchedule(requestMock(), response);
 
   assert.equal(response.statusCode, 200);
   assert.deepEqual(response.body, schedule);
-  assert.equal(response.cookies.length, 0);
   assert.equal(databaseCalled, false);
 });
 
-test("getSchedule fetches from the database when the cookie has expired", async () => {
+test("getSchedule fetches from the database when the when cache is expired or missing", async () => {
   const rows = [{ id: 2, title: "Database item" }];
   let databaseArgs;
   dbAllImpl = async (...args) => {
     databaseArgs = args;
     return rows;
   };
-  const cacheKey = "schedule_42_2026-11-08";
-  const request = requestMock({
-    cookies: {
-      [cacheKey]: JSON.stringify({ value: [], expires: Date.now() - 1 })
-    }
-  });
+  const cacheKey = "schedule_42_2026-11-09";
   const response = responseMock();
 
-  await getSchedule(request, response);
+  await getSchedule(requestMock({ date: "2026-11-09" }), response);
 
   assert.equal(response.statusCode, 200);
   assert.deepEqual(response.body, rows);
-  assert.deepEqual(databaseArgs[1], [42, "2026-11-08"]);
-  assert.equal(response.cookies.length, 1);
-  assert.equal(response.cookies[0].name, cacheKey);
-  const cachedCookie = JSON.parse(response.cookies[0].value);
-  assert.deepEqual(cachedCookie.value, rows);
-  assert.ok(cachedCookie.expires > Date.now());
-  assert.equal(response.cookies[0].options.maxAge, 60_000);
+  assert.deepEqual(databaseArgs[1], [42, "2026-11-09"]);
+  assert.deepEqual(getCache(cacheKey), rows);
 });
 
-test("getSchedule ignores a malformed cookie and fetches from the database", async () => {
+test("getSchedule queries database and proceeds normally on clean request", async () => {
   const rows = [{ id: 3, title: "Recovered item" }];
   let databaseCalled = false;
   dbAllImpl = async () => {
     databaseCalled = true;
     return rows;
   };
-  const cacheKey = "schedule_42_2026-11-08";
-  const request = requestMock({ cookies: { [cacheKey]: "{invalid json" } });
+  const cacheKey = "schedule_42_2026-11-16";
+  const request = requestMock({ date: "2026-11-16" });
   const response = responseMock();
 
   await getSchedule(request, response);
@@ -142,31 +124,28 @@ test("getSchedule ignores a malformed cookie and fetches from the database", asy
   assert.equal(response.statusCode, 200);
   assert.deepEqual(response.body, rows);
   assert.equal(databaseCalled, true);
-  assert.equal(response.cookies.length, 1);
 });
 
-test("getSchedule fetches from the database and sets a cookie when no cookie exists", async () => {
+test("ggetSchedule fetches from database and populates simpleCache", async () => {
   const rows = [{ id: 4, title: "Fresh item" }];
   dbAllImpl = async () => rows;
   const response = responseMock();
 
-  await getSchedule(requestMock(), response);
+  await getSchedule(requestMock({ date: "2026-11-13" }), response);
 
   assert.equal(response.statusCode, 200);
   assert.deepEqual(response.body, rows);
-  assert.equal(response.cookies.length, 1);
-  assert.equal(response.cookies[0].name, "schedule_42_2026-11-08");
+  assert.deepEqual(getCache("schedule_42_2026-11-13"), rows);
 });
 
 test("getSchedule returns an empty list when the database has no schedule items", async () => {
   dbAllImpl = async () => [];
   const response = responseMock();
 
-  await getSchedule(requestMock(), response);
+  await getSchedule(requestMock({ date: "2026-11-14" }), response);
 
   assert.equal(response.statusCode, 200);
   assert.deepEqual(response.body, []);
-  assert.equal(response.cookies.length, 1);
 });
 
 test("getSchedule returns 500 when the database request fails", async () => {
@@ -175,11 +154,10 @@ test("getSchedule returns 500 when the database request fails", async () => {
   };
   const response = responseMock();
 
-  await getSchedule(requestMock(), response);
+  await getSchedule(requestMock({ date: "2026-11-15" }), response);
 
   assert.equal(response.statusCode, 500);
   assert.deepEqual(response.body, { message: "Failed to fetch schedule" });
-  assert.equal(response.cookies.length, 0);
 });
 
 test("simpleCache stores and returns a value", () => {

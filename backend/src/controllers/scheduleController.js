@@ -1,6 +1,7 @@
 const nodemailer = require("nodemailer");
 const { dbAll, dbGet, dbRun, getScheduleItemById } = require("../db/helpers");
 const { normalizeScheduleInput } = require("../utils/schedule");
+const { getCache, setCache } = require("../utils/simpleCache");
 
 
 async function getSchedule(req, res) {
@@ -10,18 +11,12 @@ async function getSchedule(req, res) {
       return res.status(400).json({ message: "date query parameter is required" });
     }
 
-    // Check for cached schedule in cookies
+    // 1. Tikriname talpykloje naudojant getCache (Separation of Concerns)
     const cacheKey = `schedule_${req.user.id}_${date}`;
-    let cached = null;
-    try {
-      if (req.cookies && req.cookies[cacheKey]) {
-        cached = JSON.parse(req.cookies[cacheKey]);
-        // Optionally, check for expiration in the cookie value
-        if (cached && cached.expires > Date.now()) {
-          return res.json(cached.value);
-        }
-      }
-    } catch (e) { /* ignore parse errors */ }
+    const cachedData = getCache(cacheKey);
+    if (cachedData) {
+      return res.json(cachedData);
+    }
 
     const rows = await dbAll(
       `SELECT id, date,
@@ -34,15 +29,12 @@ async function getSchedule(req, res) {
       [req.user.id, date]
     );
 
-    // Set cookie for 60 seconds
-    res.cookie(cacheKey, JSON.stringify({ value: rows, expires: Date.now() + 60000 }), {
-      maxAge: 60000,
-      httpOnly: false, // Set to true if you want to restrict JS access
-      sameSite: "lax"
-    });
+    // 2. Išsaugome į talpyklą 60 sekundžių naudojant setCache
+    setCache(cacheKey, rows, 60);
 
     return res.json(rows);
   } catch (error) {
+    console.error("Klaida gaunant tvarkaraštį:", error.message);
     return res.status(500).json({ message: "Failed to fetch schedule" });
   }
 }
