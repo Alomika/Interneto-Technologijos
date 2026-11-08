@@ -1,6 +1,7 @@
 const nodemailer = require("nodemailer");
-const { dbAll, dbGet, dbRun } = require("../db/helpers");
+const { dbAll, dbGet, dbRun, getScheduleItemById } = require("../db/helpers");
 const { normalizeScheduleInput } = require("../utils/schedule");
+
 
 async function getSchedule(req, res) {
   try {
@@ -66,15 +67,7 @@ async function createScheduleItem(req, res) {
       ]
     );
 
-    const created = await dbGet(
-      `SELECT id, date,
-        COALESCE(start_time, time) AS startTime,
-        COALESCE(end_time, TIME(time, '+1 hour')) AS endTime,
-        title
-      FROM schedule_items
-      WHERE id = ?`,
-      [result.lastID]
-    );
+    const created = await getScheduleItemById(result.lastID);
 
     return res.status(201).json(created);
   } catch (error) {
@@ -113,15 +106,7 @@ async function updateScheduleItem(req, res) {
       return res.status(404).json({ message: "Item not found" });
     }
 
-    const updated = await dbGet(
-      `SELECT id, date,
-        COALESCE(start_time, time) AS startTime,
-        COALESCE(end_time, TIME(time, '+1 hour')) AS endTime,
-        title
-      FROM schedule_items
-      WHERE id = ?`,
-      [id]
-    );
+    const updated = await getScheduleItemById(id);
 
     return res.json(updated);
   } catch (error) {
@@ -183,15 +168,7 @@ async function patchScheduleItem(req, res) {
       ]
     );
 
-    const updated = await dbGet(
-      `SELECT id, date,
-        COALESCE(start_time, time) AS startTime,
-        COALESCE(end_time, TIME(time, '+1 hour')) AS endTime,
-        title
-      FROM schedule_items
-      WHERE id = ?`,
-      [id]
-    );
+    const updated = await getScheduleItemById(id);
 
     return res.json(updated);
   } catch (error) {

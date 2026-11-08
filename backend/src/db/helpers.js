@@ -27,8 +27,21 @@ function dbAll(sql, params = []) {
   });
 }
 
+async function getScheduleItemById(id) {
+  return await dbGet(
+    `SELECT id, date,
+      COALESCE(start_time, time) AS startTime,
+      COALESCE(end_time, TIME(time, '+1 hour')) AS endTime,
+      title
+    FROM schedule_items
+    WHERE id = ?`,
+    [id]
+  );
+}
+
 module.exports = {
   dbRun,
   dbGet,
-  dbAll
+  dbAll,
+  getScheduleItemById
 };
