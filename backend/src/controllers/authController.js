@@ -1,7 +1,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { JWT_SECRET } = require("../config");
-const { dbGet, dbRun } = require("../db/helpers");
+const dbHelpers = require("../db/helpers");
 
 async function register(req, res) {
   try {
@@ -11,13 +11,13 @@ async function register(req, res) {
       return res.status(400).json({ message: "name, email, and password are required" });
     }
 
-    const existingUser = await dbGet("SELECT id FROM users WHERE email = ?", [email]);
+    const existingUser = await dbHelpers.dbGet("SELECT id FROM users WHERE email = ?", [email]);
     if (existingUser) {
       return res.status(409).json({ message: "Email already registered" });
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const result = await dbRun(
+    const result = await dbHelpers.dbRun(
       "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
       [name, email, passwordHash]
     );
@@ -36,7 +36,7 @@ async function login(req, res) {
       return res.status(400).json({ message: "email and password are required" });
     }
 
-    const user = await dbGet("SELECT * FROM users WHERE email = ?", [email]);
+    const user = await dbHelpers.dbGet("SELECT * FROM users WHERE email = ?", [email]);
     if (!user) {
       return res.status(401).json({ message: "Invalid credentials" });
     }

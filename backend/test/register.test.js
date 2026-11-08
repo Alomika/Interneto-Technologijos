@@ -2,7 +2,7 @@ const assert = require("node:assert/strict");
 const { after, before, test } = require("node:test");
 const { register } = require("../src/controllers/authController");
 const { db } = require("../src/db/database");
-const { dbGet, dbRun } = require("../src/db/helpers");
+const dbHelpers = require("../src/db/helpers");
 
 const email = `register-test-${Date.now()}@example.com`;
 const user = {
@@ -28,18 +28,40 @@ function responseMock() {
 }
 
 before(async () => {
-  await dbRun("DELETE FROM users WHERE email = ?", [user.email]);
+  await dbHelpers.dbRun("DELETE FROM users WHERE email = ?", [user.email]);
 });
 
 after(async () => {
-  await dbRun("DELETE FROM users WHERE email = ?", [user.email]);
+  await dbHelpers.dbRun("DELETE FROM users WHERE email = ?", [user.email]);
   db.close();
 });
 
-test("register rejects requests with missing fields", async () => {
+test("register rejects a request without a name", async () => {
   const response = responseMock();
 
   await register({ body: { email: user.email, password: user.password } }, response);
+
+  assert.equal(response.statusCode, 400);
+  assert.deepEqual(response.body, {
+    message: "name, email, and password are required"
+  });
+});
+
+test("register rejects a request without an email", async () => {
+  const response = responseMock();
+
+  await register({ body: { name: user.name, password: user.password } }, response);
+
+  assert.equal(response.statusCode, 400);
+  assert.deepEqual(response.body, {
+    message: "name, email, and password are required"
+  });
+});
+
+test("register rejects a request without a password", async () => {
+  const response = responseMock();
+
+  await register({ body: { name: user.name, email: user.email } }, response);
 
   assert.equal(response.statusCode, 400);
   assert.deepEqual(response.body, {
@@ -60,7 +82,7 @@ test("register creates a user and returns its public details", async () => {
     email: user.email
   });
 
-  const storedUser = await dbGet(
+  const storedUser = await dbHelpers.dbGet(
     "SELECT name, email, password_hash FROM users WHERE id = ?",
     [userId]
   );
@@ -76,4 +98,41 @@ test("register rejects an email that is already registered", async () => {
 
   assert.equal(response.statusCode, 409);
   assert.deepEqual(response.body, { message: "Email already registered" });
+});
+
+test("register returns a server error when the database query fails", async () => {
+  const response = responseMock();
+  const originalDbGet = dbHelpers.dbGet;
+  dbHelpers.dbGet = async () => {
+    throw new Error("database unavailable");
+  };
+
+  try {
+    await register({ body: user }, response);
+  } finally {
+    dbHelpers.dbGet = originalDbGet;
+  }
+
+  assert.equal(response.statusCode, 500);
+  assert.deepEqual(response.body, { message: "Registration failed" });
+});
+
+test("register returns a server error when inserting the user fails", async () => {
+  const response = responseMock();
+  const originalDbGet = dbHelpers.dbGet;
+  const originalDbRun = dbHelpers.dbRun;
+  dbHelpers.dbGet = async () => undefined;
+  dbHelpers.dbRun = async () => {
+    throw new Error("database unavailable");
+  };
+
+  try {
+    await register({ body: user }, response);
+  } finally {
+    dbHelpers.dbGet = originalDbGet;
+    dbHelpers.dbRun = originalDbRun;
+  }
+
+  assert.equal(response.statusCode, 500);
+  assert.deepEqual(response.body, { message: "Registration failed" });
 });
