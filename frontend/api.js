@@ -42,4 +42,10 @@ export async function apiCreateScheduleItem(token, data) {
 }
 
 export async function apiUpdateScheduleItem(token, id, data) {
-  const res = await fetch(`${API_BASE}/schedule/${id}`,
+  const res = await fetch(`${API_BASE}/schedule/${id}`, {
+    method: "PUT",
+    headers: authHeaders(token),
+    body: JSON.stringify(data)
+  });
+  return res.json();
+}

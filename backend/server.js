@@ -1,9 +1,9 @@
 require("dotenv").config();
 
-const fs = require("fs");
-const http = require("http");
-const https = require("https");
-const path = require("path");
+const fs = require("node:fs");
+const http = require("node:http");
+const https = require("node:https");
+const path = require("node:path");
 const app = require("./src/app");
 const { PORT } = require("./src/config");
 const { initDatabase } = require("./src/db/init");

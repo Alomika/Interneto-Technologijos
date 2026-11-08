@@ -1,0 +1,86 @@
+const assert = require("node:assert/strict");
+const { after, before, test } = require("node:test");
+const bcrypt = require("bcryptjs");
+const { login } = require("../src/controllers/authController");
+const { db } = require("../src/db/database");
+const { dbRun } = require("../src/db/helpers");
+
+const email = `login-test-${Date.now()}@example.com`;
+const user = {
+  id: null,
+  name: "Login Test User",
+  email,
+  password: "correct-password"
+};
+
+function responseMock() {
+  return {
+    statusCode: 200,
+    body: null,
+    status(code) {
+      this.statusCode = code;
+      return this;
+    },
+    json(payload) {
+      this.body = payload;
+      return this;
+    }
+  };
+}
+
+before(async () => {
+  const passwordHash = await bcrypt.hash(user.password, 10);
+  const result = await dbRun(
+    "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
+    [user.name, user.email, passwordHash]
+  );
+  user.id = result.lastID;
+});
+
+after(async () => {
+  await dbRun("DELETE FROM users WHERE id = ?", [user.id]);
+  db.close();
+});
+
+test("login rejects requests without email or password", async () => {
+  const response = responseMock();
+
+  await login({ body: { email: user.email } }, response);
+
+  assert.equal(response.statusCode, 400);
+  assert.deepEqual(response.body, {
+    message: "email and password are required"
+  });
+});
+
+test("login rejects an unknown email", async () => {
+  const response = responseMock();
+
+  await login({ body: { email: "missing@example.com", password: user.password } }, response);
+
+  assert.equal(response.statusCode, 401);
+  assert.deepEqual(response.body, { message: "Invalid credentials" });
+});
+
+test("login rejects an incorrect password", async () => {
+  const response = responseMock();
+
+  await login({ body: { email: user.email, password: "wrong-password" } }, response);
+
+  assert.equal(response.statusCode, 401);
+  assert.deepEqual(response.body, { message: "Invalid credentials" });
+});
+
+test("login returns a token and user details for valid credentials", async () => {
+  const response = responseMock();
+
+  await login({ body: { email: user.email, password: user.password } }, response);
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(typeof response.body.token, "string");
+  assert.deepEqual(response.body.user, {
+    id: user.id,
+    name: user.name,
+    email: user.email
+  });
+});
