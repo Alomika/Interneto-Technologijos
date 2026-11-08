@@ -3,12 +3,19 @@ const jwt = require("jsonwebtoken");
 const { JWT_SECRET } = require("../config");
 const dbHelpers = require("../db/helpers");
 
+function validateRequiredFields(values, message) {
+  return values.every(Boolean)
+    ? null
+    : { status: 400, body: { message } };
+}
+
 async function registerUser({ name, email, password }) {
-  if (!name || !email || !password) {
-    return {
-      status: 400,
-      body: { message: "name, email, and password are required" }
-    };
+  const validation = validateRequiredFields(
+    [name, email, password],
+    "name, email, and password are required"
+  );
+  if (validation) {
+    return validation;
   }
 
   const existingUser = await dbHelpers.dbGet(
@@ -34,20 +41,24 @@ async function registerUser({ name, email, password }) {
   };
 }
 
-function register(req, res) {
-  return registerUser(req.body)
+function handleAuthRequest(req, res, operation, errorMessage) {
+  return operation(req.body)
     .then(({ status, body }) => res.status(status).json(body))
-    .catch(() => {
-      return res.status(500).json({ message: "Registration failed" });
-    });
+    .catch(() => res.status(500).json({ message: errorMessage }));
 }
 
+function register(req, res) {
+  return handleAuthRequest(req, res, registerUser, "Registration failed");
+}
+
+
 async function loginUser({ email, password }) {
-  if (!email || !password) {
-    return {
-      status: 400,
-      body: { message: "email and password are required" }
-    };
+  const validation = validateRequiredFields(
+    [email, password],
+    "email and password are required"
+  );
+  if (validation) {
+    return validation;
   }
 
   const user = await dbHelpers.dbGet(
@@ -85,11 +96,7 @@ async function loginUser({ email, password }) {
 }
 
 function login(req, res) {
-  return loginUser(req.body)
-    .then(({ status, body }) => res.status(status).json(body))
-    .catch(() => {
-      return res.status(500).json({ message: "Login failed" });
-    });
+  return handleAuthRequest(req, res, loginUser, "Login failed");
 }
 
 module.exports = {
