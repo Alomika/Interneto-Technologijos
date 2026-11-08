@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "node --test test/login.test.js test/register.test.js",
+    "test": "node --test \"test/*.test.js\"",
     "lint": "eslint .",
     "lint:cognitive": "eslint --config lint-cognitive.config.mjs ."
   },
